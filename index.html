@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <header>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.36.5/ace.js" integrity="sha512-P4Yyv1mPQ0p5qLeBwhXMt4H9xfTnIdV1E/TdNyIS3omReUnnIVePciH+456UvnW6fB2jph8MAw7ThFOT1aBahQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <style type="text/css" media="screen">
+    .border {
+      border: 1px solid lightgray;
+    }
+
+    #page {
+      font-family: monospace;
+    }
+
+    .box {
+      display: flex;
+      gap: 1ch;
+      margin-bottom: 1ch;
+    }
+
+    .editor {
+      width: 110ch;
+      margin: 0px;
+    }
+
+    .output_total {
+      flex: 1;
+    }
+
+    .output_text {
+      margin-bottom: 1ch;
+      padding: 0.5ch;
+      min-height: 1ch;
+    }
+
+    .output {
+      padding: 0.5ch;
+      min-height: 1ch;
+    }
+    </style>
+  </header>
+
+  <body>
+    <h1 style="text-align: center"> Welcome to Notebook </h1>
+    <div id="page" style="width:90%; margin: auto"> </div>
+  <div id="bottom padding" style="height: 300px"></div>
+  </body>
+
+  <script type="text/javascript">
+    "use strict";
+    function newEditor(name) {
+      var editor = ace.edit(name, {
+        mode: "ace/mode/javascript",
+        maxLines: 1000,
+        autoScrollEditorIntoView: true,
+      });
+      editor.session.setMode("ace/mode/javascript");
+      editor.setKeyboardHandler("ace/keyboard/vim");
+      return editor;
+    }
+    function newEditorBox(id) {
+      var div = document.createElement("div");
+      div.dataset.editorId = id;
+      div.className = "box";
+      var htmlStr = `
+<pre class="editor border" id="editor_${id}"> </pre>
+<div class="output_total">
+  <div class="downloads"> </div>`;
+  htmlStr += '<script class="code" type="text/javascript"> </' + "script>";
+    htmlStr += `
+        <div class="output_text border"></div>
+        <div class="output border"></div>
+      </div>`;
+    div.innerHTML = htmlStr;
+    page.appendChild(div);
+    return {
+      id: id,
+      box: div,
+      editor: newEditor(`editor_${id}`),
+      downloads : div.getElementsByClassName("downloads")[0],
+      output_text : div.getElementsByClassName("output_text")[0],
+      output : div.getElementsByClassName("output")[0],
+      code : div.getElementsByClassName("code")[0],
+    };
+    }
+    var nb = {
+      print: function (text) {
+        current.output_text.innerText += text;
+      },
+      println: function (text) {
+        this.print(`${text}\n`);
+      },
+      download: function (url) {
+        var script = document.createElement('script');
+        script.setAttribute('src', url);
+        current.downloads.appendChild(script);
+      }
+    };
+
+    function runCode(box) {
+      if (!box) {
+        box = getCurrentBox();
+      }
+      current = box;
+      current.downloads.innerHTML = "";
+      current.output_text.innerHTML = "";
+      current.output.innerHTML = "";
+      nb.output = current.output;
+
+      var script = document.createElement('script');
+      script.type = "text/javascript";
+      script.className = "code";
+      script.innerHTML = current.editor.getValue();
+      current.code.replaceWith(script);
+      current.code = script;
+    }
+
+    function getCurrentBox() {
+      var box = document.activeElement.closest(".box");
+      return editors[box.dataset.editorId];
+    }
+
+    function focusBox(box) {
+      box.editor.focus();
+      box.box.scrollIntoView();
+    }
+
+    function addBox() {
+      var id = editors.length;
+      var editorBox = newEditorBox(id);
+      editors.push(editorBox);
+      focusBox(editorBox);
+    }
+
+    function pageToString() {
+      var comment = "\n// JS_NB: New Box\n";
+      var s = "";
+      for (var editor of editors) {
+        s += comment;
+        s += editor.editor.getValue();
+      }
+      return s;
+    }
+
+    function stringToPage(s) {
+      var comment = "\n// JS_NB: New Box\n";
+      var text = s.split(comment);
+      page.innerHTML = "";
+      editors = [];
+      for (var t of text) {
+        if (t == "") continue;
+        addBox();
+        editors[editors.length - 1].editor.setValue(t, -1);
+      }
+    }
+
+    function savePage() {
+      var file = new Blob([pageToString()], {type: "text/plain"});
+      if (window.navigator.msSaveOrOpenBlob) // IE10+
+        window.navigator.msSaveOrOpenBlob(file, filename);
+      else { // Others
+        var a = document.createElement("a"),
+          url = URL.createObjectURL(file);
+        a.href = url;
+        a.download = "file";
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(function() {
+          document.body.removeChild(a);
+          window.URL.revokeObjectURL(url);
+        }, 0);
+      }
+    }
+
+    async function loadPage() {
+      var files = await window.showOpenFilePicker();
+      var file = await files[0].getFile();
+      var text = await file.text();
+      stringToPage(text);
+    }
+
+    function handleShortcut() {
+      if (!event.ctrlKey) {
+        return;
+      }
+      if (event.key == "Enter" && !event.shiftKey) {
+          runCode();
+      }
+      if (event.key == "Enter" && event.shiftKey) {
+        for (var editor of editors) {
+          runCode(editor);
+        }
+      }
+      if (event.key == "I") {
+          addBox();
+      }
+      if (event.key == "S") {
+          savePage();
+      }
+      if (event.key == "O") {
+          loadPage();
+      }
+      if (event.key == "J") {
+        var box = getCurrentBox();
+        if (box.id + 1 < editors.length) {
+          focusBox(editors[box.id + 1]);
+        }
+      }
+      if (event.key == "K") {
+        var box = getCurrentBox();
+        if (box.id - 1 >= 0) {
+          focusBox(editors[box.id - 1]);
+        }
+      }
+    }
+    document.addEventListener("keydown", handleShortcut);
+
+    console.log("started!");
+    var editors = [];
+    var current = {};
+    var output = {};
+    addBox();
+    var text = `// Welcome to Notebook!
+
+// Commands:
+// Ctl-Shift-{O, S}: Open or Save File
+// Ctl-Shift-{J, K}: Move down or up boxes
+// Ctl-Shift-I: Insert new box
+// Ctl-Enter: Run current box
+// Ctl-Shift-Enter: Run all boxes
+
+// Variables:
+// nb.print{ln}(string): print to output box
+// nb.download(url): Download a url (needs to be in own box)
+// nb.output: The div object you can output to
+
+nb.println("Hello");
+nb.output.innerHTML += "<h1> World </h1>"
+`;
+    editors[0].editor.setValue(text, 1);
+  </script>
+</html>
