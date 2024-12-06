@@ -3,9 +3,9 @@
   <header>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.36.5/ace.js" integrity="sha512-P4Yyv1mPQ0p5qLeBwhXMt4H9xfTnIdV1E/TdNyIS3omReUnnIVePciH+456UvnW6fB2jph8MAw7ThFOT1aBahQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <style type="text/css" media="screen">
-    .border {
-      border: 1px solid lightgray;
-    }
+.border {
+  border: 1px solid lightgray;
+}
 
     #page {
       font-family: monospace;
@@ -42,7 +42,7 @@
   <body>
     <h1 style="text-align: center"> Welcome to Notebook </h1>
     <div id="page" style="width:90%; margin: auto"> </div>
-  <div id="bottom padding" style="height: 300px"></div>
+    <div id="bottom padding" style="height: 300px"></div>
   </body>
 
   <script type="text/javascript">
@@ -81,7 +81,7 @@
       output : div.getElementsByClassName("output")[0],
       code : div.getElementsByClassName("code")[0],
     };
-    }
+}
     var nb = {
       print: function (text) {
         current.output_text.innerText += text;
@@ -183,7 +183,7 @@
         return;
       }
       if (event.key == "Enter" && !event.shiftKey) {
-          runCode();
+        runCode();
       }
       if (event.key == "Enter" && event.shiftKey) {
         for (var editor of editors) {
@@ -191,13 +191,13 @@
         }
       }
       if (event.key == "I") {
-          addBox();
+        addBox();
       }
       if (event.key == "S") {
-          savePage();
+        savePage();
       }
       if (event.key == "O") {
-          loadPage();
+        loadPage();
       }
       if (event.key == "J") {
         var box = getCurrentBox();
@@ -214,28 +214,38 @@
     }
     document.addEventListener("keydown", handleShortcut);
 
+    window.onbeforeunload = function(){
+      localStorage.setItem("data", pageToString());
+    };
+
     console.log("started!");
     var editors = [];
     var current = {};
     var output = {};
-    addBox();
-    var text = `// Welcome to Notebook!
 
-// Commands:
-// Ctl-Shift-{O, S}: Open or Save File
-// Ctl-Shift-{J, K}: Move down or up boxes
-// Ctl-Shift-I: Insert new box
-// Ctl-Enter: Run current box
-// Ctl-Shift-Enter: Run all boxes
+    var loaded_data = localStorage.getItem("data");
+    if (loaded_data) {
+      stringToPage(loaded_data);
+    } else {
+      addBox();
+      var text = `// Welcome to Notebook!
 
-// Variables:
-// nb.print{ln}(string): print to output box
-// nb.download(url): Download a url (needs to be in own box)
-// nb.output: The div object you can output to
+        // Commands:
+      // Ctl-Shift-{O, S}: Open or Save File
+      // Ctl-Shift-{J, K}: Move down or up boxes
+      // Ctl-Shift-I: Insert new box
+      // Ctl-Enter: Run current box
+      // Ctl-Shift-Enter: Run all boxes
 
-nb.println("Hello");
-nb.output.innerHTML += "<h1> World </h1>"
-`;
-    editors[0].editor.setValue(text, 1);
+      // Variables:
+      // nb.print{ln}(string): print to output box
+      // nb.download(url): Download a url (needs to be in own box)
+      // nb.output: The div object you can output to
+
+      nb.println("Hello");
+      nb.output.innerHTML += "<h1> World </h1>"
+      `;
+      editors[0].editor.setValue(text, 1);
+    }
   </script>
 </html>
