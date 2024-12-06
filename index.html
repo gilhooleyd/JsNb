@@ -224,7 +224,19 @@
     var output = {};
 
     var loaded_data = localStorage.getItem("data");
-    if (loaded_data) {
+    if (window.location.search) {
+      fetch(window.location.search.substr(1))
+        .then(function (response) {
+          if (response.status != 200) {
+            console.log("Failed " + response);
+            return;
+          }
+          return response.text();
+        })
+        .then(function (text) {
+          stringToPage(text);
+        });
+    } else if (loaded_data) {
       stringToPage(loaded_data);
     } else {
       addBox();
