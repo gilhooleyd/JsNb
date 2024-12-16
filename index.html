@@ -223,6 +223,12 @@
       localStorage.setItem("data", pageToString());
     };
 
+    window.onerror = function(message, source, lineno, colno, error) {
+      current.output_text.innerText += error.stack;
+      // Let the error still show up in the console.
+      return false;
+    };
+
     function startAnimating() {
       if (isAnimating == true) {
         return;
