@@ -105,6 +105,7 @@
       current.output_text.innerHTML = "";
       current.output.innerHTML = "";
       nb.output = current.output;
+      nb.onAnimation = null;
 
       var script = document.createElement('script');
       script.type = "text/javascript";
@@ -112,6 +113,10 @@
       script.innerHTML = current.editor.getValue();
       current.code.replaceWith(script);
       current.code = script;
+      current.onAnimation = nb.onAnimation;
+      if (current.onAnimation) {
+        startAnimating();
+      }
     }
 
     function getCurrentBox() {
@@ -218,12 +223,35 @@
       localStorage.setItem("data", pageToString());
     };
 
+    function startAnimating() {
+      if (isAnimating == true) {
+        return;
+      }
+      isAnimating = true;
+      requestAnimationFrame(animate);
+    }
+
+    function animate(timestamp) {
+      var quit = true
+      for (var editor of editors) {
+        if (editor.onAnimation) {
+          editor.onAnimation(timestamp);
+          quit = false
+        }
+      }
+      if (quit) {
+        isAnimating = false;
+        return;
+      }
+      requestAnimationFrame(animate);
+    }
+
     console.log("started!");
     var editors = [];
     var current = {};
     var output = {};
-
     var loaded_data = localStorage.getItem("data");
+    var isAnimating = false;
     if (window.location.search) {
       fetch(window.location.search.substr(1))
         .then(function (response) {
@@ -242,20 +270,21 @@
       addBox();
       var text = `// Welcome to Notebook!
 
-        // Commands:
-      // Ctl-Shift-{O, S}: Open or Save File
-      // Ctl-Shift-{J, K}: Move down or up boxes
-      // Ctl-Shift-I: Insert new box
-      // Ctl-Enter: Run current box
-      // Ctl-Shift-Enter: Run all boxes
+// Commands:
+// Ctl-Shift-{O, S}: Open or Save File
+// Ctl-Shift-{J, K}: Move down or up boxes
+// Ctl-Shift-I: Insert new box
+// Ctl-Enter: Run current box
+// Ctl-Shift-Enter: Run all boxes
 
-      // Variables:
-      // nb.print{ln}(string): print to output box
-      // nb.download(url): Download a url (needs to be in own box)
-      // nb.output: The div object you can output to
+// Variables:
+// nb.print{ln}(string): print to output box
+// nb.download(url): Download a url (needs to be in own box)
+// nb.output: The div object you can output to
+// nb.onAnimation: set this to have a function called on animation frame
 
-      nb.println("Hello");
-      nb.output.innerHTML += "<h1> World </h1>"
+nb.println("Hello");
+nb.output.innerHTML += "<h1> World </h1>"
       `;
       editors[0].editor.setValue(text, 1);
     }
